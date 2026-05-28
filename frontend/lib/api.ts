@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = "https://maintenance-backend-r1vk.onrender.com/api";
 
 export type User = {
   id: number;
