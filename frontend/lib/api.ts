@@ -1,8 +1,9 @@
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+const API_BASE_URL = "http://localhost:8000/api";
 
 export type User = {
   id: number;
   username: string;
+  email?: string;
   role: "manager" | "staff" | "resident";
 };
 
@@ -14,11 +15,11 @@ export type MaintenanceRequest = {
   title: string;
   description: string;
   status: RequestStatus;
-  priority?: RequestPriority;
-  created_by?: number | User | null;
-  assigned_to?: number | User | null;
-  created_at?: string;
-  updated_at?: string;
+  priority: RequestPriority;
+  created_by: User;
+  assigned_to: User | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export async function getCsrfToken() {
@@ -106,6 +107,18 @@ export async function getRequests(): Promise<MaintenanceRequest[]> {
   return [];
 }
 
+export async function getStaffUsers(): Promise<User[]> {
+  const response = await fetch(`${API_BASE_URL}/staff-users/`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  return response.json();
+}
+
 export async function createRequest(data: {
   title: string;
   description: string;
@@ -130,16 +143,7 @@ export async function createRequest(data: {
   return response.json();
 }
 
-export async function updateRequest(
-  id: number,
-  data: {
-    status?: RequestStatus;
-    priority?: RequestPriority;
-    title?: string;
-    description?: string;
-    assigned_to?: number | null;
-  }
-) {
+export async function updateRequestStatus(id: number, status: RequestStatus) {
   const csrfToken = await getCsrfToken();
 
   const response = await fetch(`${API_BASE_URL}/requests/${id}/`, {
@@ -149,11 +153,31 @@ export async function updateRequest(
       "Content-Type": "application/json",
       "X-CSRFToken": csrfToken,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ status }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to update request");
+    throw new Error("Failed to update request status");
+  }
+
+  return response.json();
+}
+
+export async function assignRequest(id: number, staffId: number) {
+  const csrfToken = await getCsrfToken();
+
+  const response = await fetch(`${API_BASE_URL}/requests/${id}/assign/`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+    },
+    body: JSON.stringify({ staff_id: staffId }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to assign request");
   }
 
   return response.json();

@@ -8,6 +8,7 @@ from maintenance.views import (
     login_view,
     logout_view,
     me_view,
+    staff_users_view,
 )
 
 router = DefaultRouter()
@@ -15,11 +16,10 @@ router.register("requests", MaintenanceRequestViewSet, basename="request")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
     path("api/csrf/", csrf_token),
     path("api/login/", login_view),
     path("api/logout/", logout_view),
     path("api/me/", me_view),
-
+    path("api/staff-users/", staff_users_view),
     path("api/", include(router.urls)),
 ]

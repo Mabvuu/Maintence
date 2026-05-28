@@ -32,14 +32,16 @@ def login_view(request):
 
     login(request, user)
 
-    return Response({
-        "detail": "Login successful.",
-        "user": UserSerializer(user).data,
-    })
+    return Response(
+        {
+            "detail": "Login successful.",
+            "user": UserSerializer(user).data,
+        }
+    )
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def logout_view(request):
     logout(request)
     return Response({"detail": "Logout successful."})
@@ -49,6 +51,19 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def me_view(request):
     return Response(UserSerializer(request.user).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def staff_users_view(request):
+    if request.user.role != User.Role.MANAGER:
+        return Response(
+            {"detail": "Only managers can view staff users."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    staff_users = User.objects.filter(role=User.Role.STAFF).order_by("username")
+    return Response(UserSerializer(staff_users, many=True).data)
 
 
 class MaintenanceRequestViewSet(viewsets.ModelViewSet):
@@ -62,18 +77,30 @@ class MaintenanceRequestViewSet(viewsets.ModelViewSet):
             return MaintenanceRequest.objects.all().order_by("-created_at")
 
         if user.role == User.Role.STAFF:
-            return MaintenanceRequest.objects.filter(assigned_to=user).order_by("-created_at")
+            return MaintenanceRequest.objects.filter(assigned_to=user).order_by(
+                "-created_at"
+            )
 
         if user.role == User.Role.RESIDENT:
-            return MaintenanceRequest.objects.filter(created_by=user).order_by("-created_at")
+            return MaintenanceRequest.objects.filter(created_by=user).order_by(
+                "-created_at"
+            )
 
         return MaintenanceRequest.objects.none()
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        if request.user.role != User.Role.RESIDENT:
+            return Response(
+                {"detail": "Only residents can create maintenance requests."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().create(request, *args, **kwargs)
+
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
         user = request.user
 
         if user.role == User.Role.RESIDENT:
@@ -114,7 +141,7 @@ class MaintenanceRequestViewSet(viewsets.ModelViewSet):
             )
 
         maintenance_request.assigned_to = staff_user
-        maintenance_request.status = MaintenanceRequest.Status.IN_PROGRESS
+        maintenance_request.status = MaintenanceRequest.Status.ASSIGNED
         maintenance_request.save()
 
         return Response(MaintenanceRequestSerializer(maintenance_request).data)

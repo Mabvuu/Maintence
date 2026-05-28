@@ -22,8 +22,15 @@ class User(AbstractUser):
 class MaintenanceRequest(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
+        ASSIGNED = "assigned", "Assigned"
         IN_PROGRESS = "in_progress", "In Progress"
         COMPLETED = "completed", "Completed"
+
+    class Priority(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        URGENT = "urgent", "Urgent"
 
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -32,6 +39,12 @@ class MaintenanceRequest(models.Model):
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=Priority.choices,
+        default=Priority.MEDIUM,
     )
 
     created_by = models.ForeignKey(
