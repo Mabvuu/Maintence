@@ -10,11 +10,11 @@ The system uses Django session authentication, CSRF protection, and backend-enfo
 
 Frontend:
 
-Add deployed frontend link here
+https://maintenance-frontend-g21n.onrender.com
 
 Backend API:
 
-Add deployed backend link here
+https://maintenance-backend-r1vk.onrender.com
 
 ## GitHub Repository
 
