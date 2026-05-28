@@ -9,10 +9,10 @@ import {
   logoutUser,
   updateRequest,
   MaintenanceRequest,
+  RequestPriority,
+  RequestStatus,
   User,
 } from "@/lib/api";
-
-type Status = "pending" | "assigned" | "in_progress" | "completed";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,7 +23,7 @@ export default function Home() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("medium");
+  const [priority, setPriority] = useState<RequestPriority>("medium");
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -62,15 +62,17 @@ export default function Home() {
         if (cancelled) return;
 
         setUser(currentUser);
-        setRequests(Array.isArray(requestData) ? requestData : []);
+        setRequests(requestData);
       })
       .catch(() => {
-        if (cancelled) return;
-        setMessage("Failed to load dashboard.");
+        if (!cancelled) {
+          setMessage("Failed to load dashboard.");
+        }
       })
       .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -80,10 +82,10 @@ export default function Home() {
 
   async function refreshRequests() {
     const requestData = await getRequests();
-    setRequests(Array.isArray(requestData) ? requestData : []);
+    setRequests(requestData);
   }
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
 
@@ -111,7 +113,7 @@ export default function Home() {
     }
   }
 
-  async function handleCreateRequest(e: React.FormEvent) {
+  async function handleCreateRequest(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
 
@@ -133,7 +135,7 @@ export default function Home() {
     }
   }
 
-  async function handleStatusUpdate(id: number, status: Status) {
+  async function handleStatusUpdate(id: number, status: RequestStatus) {
     try {
       await updateRequest(id, { status });
       await refreshRequests();
@@ -151,7 +153,7 @@ export default function Home() {
 
     try {
       await updateRequest(id, {
-        assigned_to: Number(staffId) as unknown as User,
+        assigned_to: Number(staffId),
         status: "assigned",
       });
 
@@ -221,8 +223,8 @@ export default function Home() {
                 Live Maintenance Operations
               </div>
 
-              <h1 className="mt-10 max-w-xl text-4xl font-black tracking-tight underline uppercase text-white">
-                Dispatch repairs.
+              <h1 className="mt-10 max-w-xl text-6xl font-black tracking-tight text-white">
+                Dispatch repairs without the chaos.
               </h1>
 
               <p className="mt-6 max-w-lg text-lg leading-8 text-slate-300">
@@ -393,7 +395,9 @@ export default function Home() {
             <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-200">
               New Request
             </p>
+
             <h2 className="mt-3 text-3xl font-black">Report an Issue</h2>
+
             <p className="mt-2 text-slate-300">
               Tell the maintenance team what needs fixing.
             </p>
@@ -422,7 +426,9 @@ export default function Home() {
                 <select
                   className="w-full rounded-2xl border border-blue-200/20 bg-slate-950/60 px-4 py-4 text-white outline-none focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  onChange={(e) =>
+                    setPriority(e.target.value as RequestPriority)
+                  }
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -462,6 +468,7 @@ export default function Home() {
               <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-200">
                 Work Orders
               </p>
+
               <h2 className="mt-2 text-3xl font-black">
                 Maintenance Requests
               </h2>
@@ -490,6 +497,7 @@ export default function Home() {
                       <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">
                         Request #{request.id}
                       </p>
+
                       <h3 className="mt-3 text-2xl font-black text-white">
                         {request.title}
                       </h3>
@@ -513,6 +521,7 @@ export default function Home() {
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Priority
                       </p>
+
                       <p
                         className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-black ${getPriorityClass(
                           request.priority
@@ -526,6 +535,7 @@ export default function Home() {
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Assigned To
                       </p>
+
                       <p className="mt-2 font-bold text-slate-100">
                         {getName(request.assigned_to)}
                       </p>
@@ -535,6 +545,7 @@ export default function Home() {
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Created By
                       </p>
+
                       <p className="mt-2 font-bold text-slate-100">
                         {getName(request.created_by)}
                       </p>
@@ -544,6 +555,7 @@ export default function Home() {
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Status
                       </p>
+
                       <p className="mt-2 font-bold text-slate-100">
                         {getStatusLabel(request.status)}
                       </p>
@@ -566,12 +578,14 @@ export default function Home() {
                                 request.id,
                                 e.currentTarget.value
                               );
+
                               e.currentTarget.value = "";
                             }
                           }}
                         />
 
                         <button
+                          type="button"
                           onClick={(e) => {
                             const input =
                               e.currentTarget
@@ -604,7 +618,7 @@ export default function Home() {
                         onChange={(e) =>
                           void handleStatusUpdate(
                             request.id,
-                            e.target.value as Status
+                            e.target.value as RequestStatus
                           )
                         }
                       >
